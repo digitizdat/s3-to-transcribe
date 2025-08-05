@@ -3,6 +3,7 @@ import random
 import urllib.parse
 import boto3
 import os
+import re
 
 print('Loading function')
 
@@ -69,7 +70,14 @@ def lambda_handler(event, context):
         print('Error getting object {} from bucket {}. Make sure they exist and your bucket is in the same region as this function.'.format(key, bucket))
         raise e
 
-    jobname = key[key.rindex('/')+1:-4]+'-'+str(random.randint(10000,99999))
+    shortname = key[key.rindex('/')+1:-4]+'-'+str(random.randint(10000,99999))
+
+    # Replace all but the allowed characters for a Translate job name.
+    # https://docs.aws.amazon.com/transcribe/latest/APIReference/API_StartTranscriptionJob.html
+    allowed = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-'
+    pattern = r'[^'+re.escape(allowed)+r']'
+    jobname = re.sub(pattern, '-', shortname)
+    
     media = {'MediaFileUri': 's3://'+bucket+'/'+key}
 
     print('Starting transcription job '+jobname)
